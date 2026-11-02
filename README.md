@@ -19,7 +19,7 @@ This repository only describes the hosted server. There is nothing to install or
 - Keep each site's data map current
 - Read the tamper-evident audit trail
 
-**What it cannot do:** delete or change anything in a connected app, approve a deletion, or email a requester. Those always stay a person's click in the SetLatch dashboard. Everything the assistant does is recorded in the audit trail under the person who connected it.
+**What it cannot do:** delete or change anything in a connected app, approve a deletion, or write to a requester. Those always stay a person's click in the SetLatch dashboard. The only email it can trigger is SetLatch's standard identity-check link when it logs a new request (and that can be turned off per request). Everything the assistant does is recorded in the audit trail under the person who connected it.
 
 ## Tools
 
