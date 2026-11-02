@@ -1,0 +1,15 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.setlatch/setlatch",
+  "title": "SetLatch",
+  "description": "Privacy requests (DSARs) for every site you run: triage, app look-ups, tasks and the audit trail.",
+  "version": "1.2.0",
+  "websiteUrl": "https://setlatch.com/docs/ai-assistants",
+  "icons": [
+    { "src": "https://setlatch.com/icon-512.png", "mimeType": "image/png", "sizes": ["512x512"] },
+    { "src": "https://setlatch.com/icon.svg", "mimeType": "image/svg+xml", "sizes": ["any"] }
+  ],
+  "remotes": [
+    { "type": "streamable-http", "url": "https://setlatch.com/mcp" }
+  ]
+}

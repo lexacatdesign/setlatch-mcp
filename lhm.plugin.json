@@ -1,0 +1,13 @@
+{
+  "identifier": "setlatch",
+  "name": "SetLatch",
+  "version": "1.2.0",
+  "description": "Handle privacy requests (DSARs) for every client site from your AI assistant: see what is due, look requesters up in connected apps, update tasks and read the audit trail. Deletions stay a person's click in SetLatch.",
+  "author": "SetLatch Pty Ltd",
+  "authorUrl": "https://setlatch.com",
+  "homepage": "https://setlatch.com/docs/ai-assistants",
+  "cloudEndpoint": "https://setlatch.com/mcp",
+  "icon": "https://setlatch.com/icon-512.png",
+  "category": "productivity",
+  "tags": ["privacy", "gdpr", "ccpa", "dsar", "compliance"]
+}
