@@ -1,5 +1,7 @@
 # SetLatch MCP server
 
+[![MCP Badge](https://lobehub.com/badge/mcp/setlatch)](https://lobehub.com/mcp/setlatch)
+
 <img src="https://setlatch.com/icon-512.png" alt="SetLatch" width="96" align="right">
 
 Hosted MCP server for [SetLatch](https://setlatch.com): privacy request (DSAR) software for web agencies and the sites they run. Handle GDPR, UK GDPR and US state privacy requests (CCPA and others) for every client site from your AI assistant.
@@ -20,6 +22,25 @@ This repository only describes the hosted server. There is nothing to install or
 - Read the tamper-evident audit trail
 
 **What it cannot do:** delete or change anything in a connected app, approve a deletion, or write to a requester. Those always stay a person's click in the SetLatch dashboard. The only email it can trigger is SetLatch's standard identity-check link when it logs a new request (and that can be turned off per request). Everything the assistant does is recorded in the audit trail under the person who connected it.
+
+## Prompts
+
+Ready-made starting points your assistant shows in its prompt menu:
+
+| Prompt | What it does |
+|---|---|
+| `triage_requests` | Open requests across your sites, soonest deadline first, with what each needs next |
+| `work_request` | Open one request, check the connected apps for the requester, list what is left |
+| `log_request` | Record a request that came in by email or phone (asks before any email goes out) |
+| `data_map_review` | Show a site's data map and point out likely gaps |
+
+## Resources
+
+Short markdown guides your assistant can attach as context:
+
+- `setlatch://guide/request-lifecycle`: statuses, tasks and deadlines
+- `setlatch://guide/connected-apps`: what a look-up does and how deletions are approved
+- `setlatch://guide/assistant-limits`: what the assistant can and cannot do
 
 ## Tools
 
@@ -42,7 +63,9 @@ This repository only describes the hosted server. There is nothing to install or
 
 ## Connect
 
-**Claude.ai / Claude Desktop:** Settings → Connectors → Add custom connector → `https://setlatch.com/mcp`
+**One click:** [Add to Claude](https://claude.ai/directory/connectors/setlatch) · [Install in Cursor](cursor://anysphere.cursor-deeplink/mcp/install?name=setlatch&config=eyJ1cmwiOiJodHRwczovL3NldGxhdGNoLmNvbS9tY3AifQ==) · [Install in VS Code](https://insiders.vscode.dev/redirect/mcp/install?name=setlatch&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A//setlatch.com/mcp%22%7D)
+
+**Claude.ai / Claude Desktop:** find SetLatch in the [Claude Connectors Directory](https://claude.ai/directory/connectors/setlatch), or Settings → Connectors → Add custom connector → `https://setlatch.com/mcp`
 
 **Claude Code:**
 ```bash
@@ -57,6 +80,10 @@ claude mcp add --transport http setlatch https://setlatch.com/mcp
 Your client opens a browser to sign in. You choose which sites the assistant may use, whether it may change anything, and whether it may run look-ups. Clients without OAuth can send a personal token (`Authorization: Bearer slt_…`) made in SetLatch under AI assistants.
 
 Requires a SetLatch account (Single site or Agency plan, 14-day free trial).
+
+## Licence
+
+The files in this repository (this README and the listing manifests) are MIT licensed; see [LICENSE](LICENSE). The SetLatch service itself is proprietary and covered by its [Terms](https://setlatch.com/terms).
 
 ## Support
 
