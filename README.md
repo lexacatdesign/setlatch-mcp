@@ -42,6 +42,10 @@ Short markdown guides your assistant can attach as context:
 - `setlatch://guide/connected-apps`: what a look-up does and how deletions are approved
 - `setlatch://guide/assistant-limits`: what the assistant can and cannot do
 
+## Skill
+
+[`skills/setlatch/SKILL.md`](skills/setlatch/SKILL.md) is an Agent Skill that teaches an assistant how to work with SetLatch: where to start, how a request moves, and what it must leave to a person.
+
 ## Tools
 
 | Tool | What it does |
