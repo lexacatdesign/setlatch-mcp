@@ -1,5 +1,6 @@
 ---
 name: setlatch
+identifier: setlatch
 description: Start working with SetLatch privacy requests (DSARs). Use when the user first connects SetLatch or asks what it can do, which requests are due, or how to handle a GDPR, UK GDPR or US state privacy request.
 ---
 

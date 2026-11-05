@@ -1,7 +1,7 @@
 {
   "identifier": "setlatch",
   "name": "SetLatch",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Handle privacy requests (DSARs) for every client site from your AI assistant: see what is due, look requesters up in connected apps, update tasks and read the audit trail. Deletions stay a person's click in SetLatch.",
   "author": "SetLatch Pty Ltd",
   "authorUrl": "https://setlatch.com",
@@ -9,5 +9,706 @@
   "cloudEndpoint": "https://setlatch.com/mcp",
   "icon": "https://setlatch.com/icon-512.png",
   "category": "productivity",
-  "tags": ["privacy", "gdpr", "ccpa", "dsar", "compliance"]
+  "tags": [
+    "privacy",
+    "gdpr",
+    "ccpa",
+    "dsar",
+    "compliance"
+  ],
+  "prompts": [
+    {
+      "name": "triage_requests",
+      "title": "Triage privacy requests",
+      "description": "See which privacy requests are open and due soonest, and what each one needs next.",
+      "arguments": [
+        {
+          "name": "site",
+          "description": "Site name or slug. Leave empty for every site."
+        }
+      ]
+    },
+    {
+      "name": "work_request",
+      "title": "Work through a request",
+      "description": "Open one request, check the connected apps for the requester, and list what is left to do.",
+      "arguments": [
+        {
+          "name": "request",
+          "description": "The requester’s name or email, or the request id.",
+          "required": true
+        },
+        {
+          "name": "site",
+          "description": "Site name or slug, if you know it."
+        }
+      ]
+    },
+    {
+      "name": "log_request",
+      "title": "Log a request received by email or phone",
+      "description": "Record a privacy request that arrived outside the site’s form.",
+      "arguments": [
+        {
+          "name": "requester",
+          "description": "The requester’s email address.",
+          "required": true
+        },
+        {
+          "name": "type",
+          "description": "access, deletion, correction, opt-out or portability.",
+          "required": true
+        },
+        {
+          "name": "site",
+          "description": "Site name or slug."
+        },
+        {
+          "name": "details",
+          "description": "How and when it arrived, and anything they said."
+        }
+      ]
+    },
+    {
+      "name": "data_map_review",
+      "title": "Review a site’s data map",
+      "description": "Check which systems hold personal data for a site and spot gaps.",
+      "arguments": [
+        {
+          "name": "site",
+          "description": "Site name or slug.",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "uri": "setlatch://guide/request-lifecycle",
+      "name": "request-lifecycle",
+      "title": "How a privacy request moves through SetLatch",
+      "description": "Statuses, tasks, deadlines and when a request can be completed.",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "setlatch://guide/connected-apps",
+      "name": "connected-apps",
+      "title": "Look-ups in connected apps",
+      "description": "Which apps SetLatch connects to, what a look-up does, and how deletions are approved.",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "setlatch://guide/assistant-limits",
+      "name": "assistant-limits",
+      "title": "What an AI assistant can and cannot do in SetLatch",
+      "description": "The boundaries of the SetLatch connector, for the assistant and the person using it.",
+      "mimeType": "text/markdown"
+    }
+  ],
+  "tools": [
+    {
+      "name": "list_sites",
+      "title": "List sites",
+      "description": "The sites you can work in, with your role on each (owner, staff or viewer) and where its data is stored.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "annotations": {
+        "title": "List sites",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_requests",
+      "title": "List privacy requests",
+      "description": "Privacy requests received by a site, newest first, with status and response deadline. Filter by status, or \"open\" for everything not yet completed or rejected.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The site: its slug from list_sites (its id or exact name also work)."
+          },
+          "status": {
+            "description": "Only requests in this status; \"open\" = not completed or rejected.",
+            "type": "string",
+            "enum": [
+              "received",
+              "identity_pending",
+              "verified",
+              "in_progress",
+              "response_ready",
+              "completed",
+              "rejected",
+              "appealed",
+              "open"
+            ]
+          }
+        },
+        "required": [
+          "site"
+        ]
+      },
+      "annotations": {
+        "title": "List privacy requests",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_request",
+      "title": "Get a privacy request",
+      "description": "One request in full: the requester, deadline, one task per data map system (with its connections, past look up and deletion runs in connected apps, the by-hand steps and what the requester will be told), uncoveredSources (data map systems with no task yet), correspondence, files and its audit trail.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The site: its slug from list_sites (its id or exact name also work)."
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "The request id: the full id from list_requests (a unique start of it also works)."
+          }
+        },
+        "required": [
+          "site",
+          "request_id"
+        ]
+      },
+      "annotations": {
+        "title": "Get a privacy request",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_request",
+      "title": "Log a privacy request",
+      "description": "Log a privacy request the site received another way (an email to the business, a phone call, a letter). Unless send_verification is false, SetLatch emails the requester a link to confirm it was them. Set received_at to when it actually arrived: deadlines run from then.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The site: its slug from list_sites (its id or exact name also work)."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "access",
+              "delete",
+              "correct",
+              "optout",
+              "portability"
+            ],
+            "description": "access, delete, correct, optout (stop sale/sharing) or portability."
+          },
+          "jurisdiction": {
+            "type": "string",
+            "enum": [
+              "gdpr",
+              "uk",
+              "ccpa",
+              "us_state",
+              "au_app",
+              "ca_pipeda",
+              "ch_fadp",
+              "nz_privacy",
+              "other"
+            ],
+            "description": "The law it falls under: gdpr, uk, ccpa, us_state, au_app, ca_pipeda, ch_fadp, nz_privacy, other (us_state = the US state privacy laws other than California; other = anywhere not listed)."
+          },
+          "email": {
+            "type": "string",
+            "description": "The requester's email address."
+          },
+          "name": {
+            "description": "The requester's name, if known.",
+            "type": "string",
+            "maxLength": 200
+          },
+          "details": {
+            "description": "What they asked for, in their words.",
+            "type": "string",
+            "maxLength": 4000
+          },
+          "received_at": {
+            "description": "ISO 8601 date-time it arrived, with offset. Defaults to now.",
+            "type": "string"
+          },
+          "send_verification": {
+            "description": "Email the requester a verification link (default true). Set false when the team will confirm identity itself; they get a confirmation of receipt instead. Opt-outs never need verification and go live at once.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "site",
+          "type",
+          "jurisdiction",
+          "email"
+        ]
+      },
+      "annotations": {
+        "title": "Log a privacy request",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "update_request_status",
+      "title": "Change a request’s status",
+      "description": "Move a request along: verified (identity confirmed another way; starts the deadline and creates the tasks), in_progress, response_ready, completed (only when every task is done or nothing held) or rejected (outcome required).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The site: its slug from list_sites (its id or exact name also work)."
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "The request id: the full id from list_requests (a unique start of it also works)."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "received",
+              "identity_pending",
+              "verified",
+              "in_progress",
+              "response_ready",
+              "completed",
+              "rejected",
+              "appealed"
+            ]
+          },
+          "outcome": {
+            "description": "Why it was rejected, or a closing note.",
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "site",
+          "request_id",
+          "status"
+        ]
+      },
+      "annotations": {
+        "title": "Change a request’s status",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "log_correspondence",
+      "title": "Log correspondence",
+      "description": "Record on the request a communication that happened outside SetLatch: a phone call, a letter, an email from a staff inbox. It is marked as logged (not sent by SetLatch) and audited. This does not contact anyone.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The site: its slug from list_sites (its id or exact name also work)."
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "The request id: the full id from list_requests (a unique start of it also works)."
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "email",
+              "phone",
+              "letter",
+              "meeting",
+              "other"
+            ]
+          },
+          "party": {
+            "type": "string",
+            "enum": [
+              "organisation",
+              "requester"
+            ],
+            "description": "Who initiated it: the organisation (to the requester) or the requester."
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000,
+            "description": "What was said or sent."
+          },
+          "occurred_at": {
+            "description": "ISO 8601 date-time it happened, with offset. Defaults to now.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "site",
+          "request_id",
+          "channel",
+          "party",
+          "summary"
+        ]
+      },
+      "annotations": {
+        "title": "Log correspondence",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "update_task",
+      "title": "Update a task",
+      "description": "Update one system’s task on a request: mark it done, na (nothing held; note required) or back to todo, with an internal note, and/or set response_note, what the requester is told about that system in the response. Recording a task as done does not delete anything anywhere: on a deletion request, a person approves the deletion in connected apps from the SetLatch dashboard.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The site: its slug from list_sites (its id or exact name also work)."
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "The request id: the full id from list_requests (a unique start of it also works)."
+          },
+          "task_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "todo",
+              "done",
+              "na"
+            ]
+          },
+          "note": {
+            "description": "Internal: where it was found, what was done, or why nothing was held.",
+            "type": "string",
+            "maxLength": 1000
+          },
+          "response_note": {
+            "description": "What the requester is told about this system. Empty string clears it.",
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "site",
+          "request_id",
+          "task_id"
+        ]
+      },
+      "annotations": {
+        "title": "Update a task",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "add_missing_tasks",
+      "title": "Add tasks for new systems",
+      "description": "Give a request a task for every data map system that holds personal data and has none yet (systems added after the request was verified: uncoveredSources in get_request). Adds tasks only; changes nothing else.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The site: its slug from list_sites (its id or exact name also work)."
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "The request id: the full id from list_requests (a unique start of it also works)."
+          }
+        },
+        "required": [
+          "site",
+          "request_id"
+        ]
+      },
+      "annotations": {
+        "title": "Add tasks for new systems",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_connections",
+      "title": "List connected apps",
+      "description": "The apps a site has connected to SetLatch (Mailchimp, Stripe, Shopify, WooCommerce, HubSpot, Klaviyo, Gmail, Resend, Cloudflare, webhooks), which data map system each serves, and whether it is working. No keys or settings.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The site: its slug from list_sites (its id or exact name also work)."
+          }
+        },
+        "required": [
+          "site"
+        ]
+      },
+      "annotations": {
+        "title": "List connected apps",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "look_up_requester",
+      "title": "Look up the requester in connected apps",
+      "description": "Ask the site’s connected apps whether they hold this request’s requester, through each vendor’s API, and record every answer on the request and in the audit trail. Covers every open task whose system has a connection, or just task_id. Returns per system: found, how many records, the vendor’s summary and reference; for access and portability requests the records are saved to the request as a file. Read-only at the vendor: it never deletes or changes anything there. The request must be verified and open; needs the owner or staff role.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The site: its slug from list_sites (its id or exact name also work)."
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "The request id: the full id from list_requests (a unique start of it also works)."
+          },
+          "task_id": {
+            "description": "Only this task’s system (it runs even if the task is already done). Omit for every open task with a connection.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "site",
+          "request_id"
+        ]
+      },
+      "annotations": {
+        "title": "Look up the requester in connected apps",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "get_data_map",
+      "title": "Get the data map",
+      "description": "The systems a site keeps personal data in (CRM, email marketing, payments…), with notes and the names of the connected apps tied to each (SetLatch can look people up in those). Archived systems have archivedAt set.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The site: its slug from list_sites (its id or exact name also work)."
+          }
+        },
+        "required": [
+          "site"
+        ]
+      },
+      "annotations": {
+        "title": "Get the data map",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "add_data_map_system",
+      "title": "Add a system to the data map",
+      "description": "Add a system the site keeps data in. New verified requests get a task for every system that holds personal data.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The site: its slug from list_sites (its id or exact name also work)."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "crm",
+              "email",
+              "payments",
+              "helpdesk",
+              "database",
+              "files",
+              "analytics",
+              "other"
+            ]
+          },
+          "holds_pii": {
+            "description": "Whether it holds personal data (default true).",
+            "type": "boolean"
+          },
+          "notes": {
+            "description": "Where to look and how, for whoever handles the task.",
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "site",
+          "name",
+          "type"
+        ]
+      },
+      "annotations": {
+        "title": "Add a system to the data map",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "update_data_map_system",
+      "title": "Edit a data map system",
+      "description": "Rename or re-describe a system, or archive / restore it (archiving needs the owner role).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The site: its slug from list_sites (its id or exact name also work)."
+          },
+          "system_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "crm",
+              "email",
+              "payments",
+              "helpdesk",
+              "database",
+              "files",
+              "analytics",
+              "other"
+            ]
+          },
+          "holds_pii": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "site",
+          "system_id"
+        ]
+      },
+      "annotations": {
+        "title": "Edit a data map system",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_audit_trail",
+      "title": "Read the audit trail",
+      "description": "A site's tamper-evident audit trail, newest first, or one request's. Says whether the hash chain still verifies.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The site: its slug from list_sites (its id or exact name also work)."
+          },
+          "request_id": {
+            "description": "Only this request’s events.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "limit": {
+            "description": "How many events (default 50).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "site"
+        ]
+      },
+      "annotations": {
+        "title": "Read the audit trail",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ]
 }
