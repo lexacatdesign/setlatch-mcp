@@ -1,7 +1,7 @@
 {
   "identifier": "setlatch",
   "name": "SetLatch",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "Handle privacy requests (DSARs) for every client site from your AI assistant: see what is due, look requesters up in connected apps, update tasks and read the audit trail. Deletions stay a person's click in SetLatch.",
   "author": "SetLatch Pty Ltd",
   "authorUrl": "https://setlatch.com",
@@ -109,7 +109,7 @@
     {
       "name": "list_sites",
       "title": "List sites",
-      "description": "The sites you can work in, with your role on each (owner, staff or viewer) and where its data is stored.",
+      "description": "The sites you can work in, with your role on each (owner, staff or viewer), the region its data is stored in, and a dashboard link. Call this first: every other tool takes a site slug from it.",
       "inputSchema": {
         "type": "object",
         "properties": {}
@@ -125,7 +125,7 @@
     {
       "name": "list_requests",
       "title": "List privacy requests",
-      "description": "Privacy requests received by a site, newest first, with status and response deadline. Filter by status, or \"open\" for everything not yet completed or rejected.",
+      "description": "Privacy requests received by a site, newest first, each with requester, type, law, status and response deadline (all of them, no paging). Use it to find a request or see what is due; then get_request for one in full. Filter by status, or \"open\" for everything not yet completed or rejected.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -165,7 +165,7 @@
     {
       "name": "get_request",
       "title": "Get a privacy request",
-      "description": "One request in full: the requester, deadline, one task per data map system (with its connections, past look up and deletion runs in connected apps, the by-hand steps and what the requester will be told), uncoveredSources (data map systems with no task yet), correspondence, files and its audit trail.",
+      "description": "One request in full (use list_requests to find its id): the requester, deadline, one task per data map system (with its connections, past look up and deletion runs in connected apps, the by-hand steps and what the requester will be told), uncoveredSources (data map systems with no task yet), correspondence, files and its audit trail.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -197,7 +197,7 @@
     {
       "name": "create_request",
       "title": "Log a privacy request",
-      "description": "Log a privacy request the site received another way (an email to the business, a phone call, a letter). Unless send_verification is false, SetLatch emails the requester a link to confirm it was them. Set received_at to when it actually arrived: deadlines run from then.",
+      "description": "Log a privacy request the site received another way (an email to the business, a phone call, a letter). Unless send_verification is false, SetLatch emails the requester a link to confirm it was them. Set received_at to when it actually arrived: deadlines run from then. Requests sent through the site’s own form are already in SetLatch, so check list_requests first to avoid a duplicate. Returns the new request’s id and link.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -273,7 +273,7 @@
     {
       "name": "update_request_status",
       "title": "Change a request’s status",
-      "description": "Move a request along: verified (identity confirmed another way; starts the deadline and creates the tasks), in_progress, response_ready, completed (only when every task is done or nothing held) or rejected (outcome required).",
+      "description": "Move a request along: verified (identity confirmed another way; starts the deadline and creates the tasks), in_progress, response_ready, completed (only when every task is done or nothing held) or rejected (outcome required). SetLatch already sets in_progress and response_ready by itself as tasks are worked, so usually only verified, completed or rejected need this. Completed and rejected close the request. To record work on one system use update_task instead.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -299,7 +299,8 @@
               "completed",
               "rejected",
               "appealed"
-            ]
+            ],
+            "description": "The new status. received, identity_pending and appealed are set by SetLatch itself."
           },
           "outcome": {
             "description": "Why it was rejected, or a closing note.",
@@ -324,7 +325,7 @@
     {
       "name": "log_correspondence",
       "title": "Log correspondence",
-      "description": "Record on the request a communication that happened outside SetLatch: a phone call, a letter, an email from a staff inbox. It is marked as logged (not sent by SetLatch) and audited. This does not contact anyone.",
+      "description": "Record on the request a communication that happened outside SetLatch: a phone call, a letter, an email from a staff inbox. It is marked as logged (not sent by SetLatch) and audited. This does not contact anyone. Each call adds a new entry; returns the entry.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -347,7 +348,8 @@
               "letter",
               "meeting",
               "other"
-            ]
+            ],
+            "description": "How it happened: email, phone, letter, meeting or other."
           },
           "party": {
             "type": "string",
@@ -387,7 +389,7 @@
     {
       "name": "update_task",
       "title": "Update a task",
-      "description": "Update one system’s task on a request: mark it done, na (nothing held; note required) or back to todo, with an internal note, and/or set response_note, what the requester is told about that system in the response. Recording a task as done does not delete anything anywhere: on a deletion request, a person approves the deletion in connected apps from the SetLatch dashboard.",
+      "description": "Update one system’s task on a request: mark it done, na (nothing held; note required) or back to todo, with an internal note, and/or set response_note, what the requester is told about that system in the response. Only the fields you pass change. Recording a task as done does not delete anything anywhere: on a deletion request, a person approves the deletion in connected apps from the SetLatch dashboard. Closing the last open task moves the request to response_ready.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -405,9 +407,11 @@
           "task_id": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 64
+            "maxLength": 64,
+            "description": "The task id from get_request (one task per data map system)."
           },
           "status": {
+            "description": "todo, done, or na (nothing held about the requester; needs a note).",
             "type": "string",
             "enum": [
               "todo",
@@ -443,7 +447,7 @@
     {
       "name": "add_missing_tasks",
       "title": "Add tasks for new systems",
-      "description": "Give a request a task for every data map system that holds personal data and has none yet (systems added after the request was verified: uncoveredSources in get_request). Adds tasks only; changes nothing else.",
+      "description": "Give a request a task for every data map system that holds personal data and has none yet (systems added after the request was verified: uncoveredSources in get_request). Adds tasks only; changes nothing else, and running it again adds nothing new. Returns how many tasks were added.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -475,7 +479,7 @@
     {
       "name": "list_connections",
       "title": "List connected apps",
-      "description": "The apps a site has connected to SetLatch (Mailchimp, Stripe, Shopify, WooCommerce, HubSpot, Klaviyo, Gmail, Resend, Cloudflare, webhooks), which data map system each serves, and whether it is working. No keys or settings.",
+      "description": "The apps a site has connected to SetLatch (Mailchimp, Stripe, Shopify, WooCommerce, HubSpot, Klaviyo, Gmail, Resend, Cloudflare, webhooks), which data map system each serves, and whether it is working. No keys or settings. Use it to see which systems look_up_requester can check; get_data_map lists every system, connected or not.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -538,7 +542,7 @@
     {
       "name": "get_data_map",
       "title": "Get the data map",
-      "description": "The systems a site keeps personal data in (CRM, email marketing, payments…), with notes and the names of the connected apps tied to each (SetLatch can look people up in those). Archived systems have archivedAt set.",
+      "description": "The systems a site keeps personal data in (CRM, email marketing, payments…), with notes and the names of the connected apps tied to each (SetLatch can look people up in those). Archived systems have archivedAt set. Use it before add_data_map_system (to avoid duplicates) and to get the system_id update_data_map_system needs.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -563,7 +567,7 @@
     {
       "name": "add_data_map_system",
       "title": "Add a system to the data map",
-      "description": "Add a system the site keeps data in. New verified requests get a task for every system that holds personal data.",
+      "description": "Add a system the site keeps data in (check get_data_map first; to change an existing one use update_data_map_system). When holds_pii is true, every request verified from now on gets a task for it; for requests already open, add_missing_tasks adds them.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -575,7 +579,8 @@
           "name": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 120
+            "maxLength": 120,
+            "description": "What the team calls it, usually the product name (e.g. \"Klaviyo\")."
           },
           "type": {
             "type": "string",
@@ -588,10 +593,11 @@
               "files",
               "analytics",
               "other"
-            ]
+            ],
+            "description": "The kind of system."
           },
           "holds_pii": {
-            "description": "Whether it holds personal data (default true).",
+            "description": "Whether it holds personal data (default true). Only systems that do get tasks on requests.",
             "type": "boolean"
           },
           "notes": {
@@ -617,7 +623,7 @@
     {
       "name": "update_data_map_system",
       "title": "Edit a data map system",
-      "description": "Rename or re-describe a system, or archive / restore it (archiving needs the owner role).",
+      "description": "Change a system in the data map: only the fields you pass change. Rename or re-describe it, or archive / restore it (archiving needs the owner role; archived systems get no new tasks, existing tasks stay). To add a new system use add_data_map_system.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -629,14 +635,17 @@
           "system_id": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 64
+            "maxLength": 64,
+            "description": "The system id from get_data_map."
           },
           "name": {
+            "description": "New name.",
             "type": "string",
             "minLength": 1,
             "maxLength": 120
           },
           "type": {
+            "description": "New kind of system.",
             "type": "string",
             "enum": [
               "crm",
@@ -650,13 +659,16 @@
             ]
           },
           "holds_pii": {
+            "description": "Whether it holds personal data; only systems that do get tasks on new requests.",
             "type": "boolean"
           },
           "notes": {
+            "description": "Where to look and how, for whoever handles the task. Replaces the existing notes.",
             "type": "string",
             "maxLength": 1000
           },
           "archived": {
+            "description": "true archives it (owner only), false restores it.",
             "type": "boolean"
           }
         },
@@ -676,7 +688,7 @@
     {
       "name": "get_audit_trail",
       "title": "Read the audit trail",
-      "description": "A site's tamper-evident audit trail, newest first, or one request's. Says whether the hash chain still verifies.",
+      "description": "A site's tamper-evident audit trail, newest first, or one request's: who did what and when, including actions taken through an AI assistant. Says whether the hash chain still verifies. For a request's current state use get_request.",
       "inputSchema": {
         "type": "object",
         "properties": {
